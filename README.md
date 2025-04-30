@@ -1,3 +1,4 @@
+
 # My Appointment Application - Kubernetes Deployment (Local Development)
 
 This directory contains the Kubernetes deployment configuration for the My Appointment application, optimized for local development.
@@ -10,6 +11,34 @@ Before running any `make` or deployment commands, ensure you have **cloned all t
 - [`my-appointment-backend`](../my-appointment-backend/)
 
 > 🧩 In the future, additional services may be added to the application architecture. Make sure all repositories are properly cloned and available for Docker builds and deployments to work correctly.
+
+---
+
+## 🧠 Heads-Up: Development with Persistent Volumes
+
+Kubernetes **Persistent Volumes (PVs)** store your PostgreSQL data between restarts.  
+⚠️ This means if you update your SQL files (like `core.sql`) **the changes won’t apply unless you reset the volume**.
+
+To wipe the volume and reapply migrations from scratch:
+
+```bash
+# 1. Delete pod
+kubectl delete deployment postgres --ignore-not-found
+
+# 2. Delete PVC and PV
+kubectl delete pvc postgres-pvc --ignore-not-found
+kubectl delete pv postgres-pv --ignore-not-found
+
+# 3. Build
+make build-database
+
+# 4. Deploy
+make deploy-database
+```
+
+> 🧽 This fully cleans up the volume so all migrations and seeds from `/docker-entrypoint-initdb.d/` are re-executed.
+
+---
 
 ## 🛠️ Prerequisites
 
@@ -38,6 +67,8 @@ Before running any `make` or deployment commands, ensure you have **cloned all t
    - 6+ CPU cores
    - 10GB+ free disk space
 
+---
+
 ## 🚀 Initial Setup
 
 ### 1. Start Minikube
@@ -61,6 +92,8 @@ Add:
 127.0.0.1 my_appointment_backend.local
 ```
 
+---
+
 ## 📦 Building Images
 
 Run the following commands using `make`:
@@ -73,6 +106,8 @@ make build-backend      # Build backend image and load to Minikube
 These targets perform two steps:
 - Build a Docker image with a local `Dockerfile`
 - Load the image into Minikube so Kubernetes can use it
+
+---
 
 ## 🚢 Deploying the Application
 
@@ -96,6 +131,8 @@ make deploy-database
 make restart-database
 ```
 
+---
+
 ## 🔍 Verifying Deployment
 
 ```bash
@@ -104,6 +141,8 @@ kubectl get pods       # See pod status
 kubectl get svc        # View service info
 kubectl get pvc        # View persistent volume claims
 ```
+
+---
 
 ## 🧹 Cleanup & Reset
 
@@ -119,6 +158,8 @@ make reset-db
 
 This is useful if you want to delete all persistent data stored by PostgreSQL.
 
+---
+
 ## 🐘 Connect to PostgreSQL
 
 ### Port-forward to Access DB Locally
@@ -131,6 +172,8 @@ kubectl port-forward service/postgres 5432:5432
 kubectl exec -it deployment/postgres -- psql -U root -d my_database_pg
 ```
 
+---
+
 ## 🔧 Utilities
 
 ```bash
@@ -139,12 +182,16 @@ make logs-backend      # View logs for backend
 make status            # View all cluster resources
 ```
 
+---
+
 ## 🌐 Access the App
 
 Once deployed, visit:
 ```
 http://my_appointment_backend.local/
 ```
+
+---
 
 ## 🧱 Architecture Overview
 
@@ -162,6 +209,8 @@ http://my_appointment_backend.local/
 ### 3. Ingress Controller (Optional)
 - Route traffic to backend using domain `my_appointment_backend.local`
 
+---
+
 ## ⚙️ Makefile Targets Summary
 
 ```bash
@@ -177,6 +226,8 @@ make logs-db                # View logs for DB deployment
 make logs-backend           # View logs for backend deployment
 make status                 # View cluster resources (pods, services, PVCs, etc.)
 ```
+
+---
 
 ## 🧠 Troubleshooting
 
@@ -208,4 +259,3 @@ kubectl top nodes
 ✅ All workflows are automated with `make`. No need for manual Docker context switching or scripts.
 
 > Happy hacking with My Appointment! 🚀
-
