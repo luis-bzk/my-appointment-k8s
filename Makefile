@@ -2,15 +2,13 @@
 # BUILD IMAGES
 # ------------------
 
-# Construye la imagen de la base de datos y la carga en Minikube
+# Construye la imagen de la base de datos
 build-database:
 	docker build -t postgres-local ../my-appointment-database/
-	minikube image load postgres-local
 
-# Construye la imagen del backend y la carga en Minikube
+# Construye la imagen del backend
 build-backend:
 	docker build -t backend-local ../my-appointment-backend/
-	minikube image load backend-local
 
 # Construye ambas imágenes
 build: build-database build-backend
@@ -22,8 +20,9 @@ build: build-database build-backend
 # Despliega todo el stack (base de datos + backend + ingress)
 deploy:
 	kubectl apply -k overlays/dev/
+	kubectl apply -f ingress/ingress.yaml
 
-# Despliega solo la base de datos (útil para testing individual)
+# Despliega solo la base de datos
 deploy-database:
 	kubectl apply -f base/postgres/persistent-volume.yaml
 	kubectl apply -f base/postgres/deployment.yaml
@@ -36,6 +35,7 @@ deploy-database:
 # Elimina todo el stack
 delete:
 	kubectl delete -k overlays/dev/ --ignore-not-found
+	kubectl delete -f ingress/ingress.yaml --ignore-not-found
 
 # Reinicia todo el stack (delete + deploy)
 restart:
