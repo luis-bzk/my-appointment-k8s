@@ -1,6 +1,6 @@
-# My Appointment Application – Kubernetes Deployment (Local Development)
+# Citary Application – Kubernetes Deployment (Local Development)
 
-Este directorio contiene la configuración de Kubernetes para desplegar la aplicación **My Appointment** localmente usando **Kubernetes en Docker Desktop**.
+Este directorio contiene la configuración de Kubernetes para desplegar la aplicación **Citary** localmente usando **Kubernetes en Docker Desktop**.
 
 ---
 
@@ -195,4 +195,4 @@ kubectl top nodes
 
 > ✅ Todos los flujos están automatizados con `make`. No se requieren scripts manuales ni cambios de contexto Docker.
 
-✨ ¡Feliz desarrollo con My Appointment! 🚀
+✨ ¡Feliz desarrollo con Citary! 🚀
