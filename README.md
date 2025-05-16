@@ -8,8 +8,8 @@ Este directorio contiene la configuración de Kubernetes para desplegar la aplic
 
 Antes de ejecutar cualquier comando `make` o `kubectl`, asegurate de tener estos repos clonados correctamente (relativos al repositorio de Kubernetes):
 
-* [`my-appointment-database`](../my-appointment-database/)
-* [`my-appointment-backend`](../my-appointment-backend/)
+* [`citary-database`](../citary-database/)
+* [`citary-backend`](../citary-backend/)
 
 ---
 
@@ -36,7 +36,7 @@ Desde la interfaz de Docker Desktop:
 Para que Ingress funcione con dominios personalizados:
 
 ```bash
-127.0.0.1 my-appointments.local
+127.0.0.1 citary.local
 ```
 
 Ubicación del archivo:
@@ -97,7 +97,7 @@ make status
 Una vez desplegada:
 
 ```bash
-http://my-appointments.local/
+http://citary.local/
 ```
 
 > Asegurate de tener el host configurado correctamente (ver paso anterior).

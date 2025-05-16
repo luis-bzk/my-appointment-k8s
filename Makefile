@@ -4,11 +4,11 @@
 
 # Construye la imagen de la base de datos
 build-database:
-	docker build -t postgres-local ../my-appointment-database/
+	docker build -t postgres-local ../citary-database/
 
 # Construye la imagen del backend
 build-backend:
-	docker build -t backend-local ../my-appointment-backend/
+	docker build -t backend-local ../citary-backend/
 
 # Construye ambas imágenes
 build: build-database build-backend
