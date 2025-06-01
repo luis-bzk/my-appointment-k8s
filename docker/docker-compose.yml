@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  database:
+    build:
+      context: ../../citary-database
+      dockerfile: Dockerfile
+    container_name: citary-database
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=my_database_pg
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - citary-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U root -d my_database_pg']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend:
+    build:
+      context: ../../citary-backend
+      dockerfile: Dockerfile
+    container_name: citary-backend
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://root:root@database:5432/my_database_pg
+    ports:
+      - '3000:3000'
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - citary-network
+    volumes:
+      - backend_logs:/app_backend/logs
+
+  frontend:
+    build:
+      context: ../../citary-frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:3000
+    container_name: citary-frontend
+    ports:
+      - '5173:5173'
+    depends_on:
+      - backend
+    networks:
+      - citary-network
+
+volumes:
+  postgres_data:
+  backend_logs:
+
+networks:
+  citary-network:
+    driver: bridge

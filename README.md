@@ -1,198 +1,458 @@
-# Citary Application – Kubernetes Deployment (Local Development)
+# Citary Infrastructure
 
-Este directorio contiene la configuración de Kubernetes para desplegar la aplicación **Citary** localmente usando **Kubernetes en Docker Desktop**.
+Orquestación completa para la aplicación Citary con Docker Compose y Kubernetes.
 
----
+## 📋 Tabla de Contenidos
 
-## 📦 Repositorios requeridos
+- [Prerequisitos](#prerequisitos)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Configuración Inicial](#configuración-inicial)
+- [Desarrollo Local](#desarrollo-local)
+- [Producción](#producción)
+- [Kubernetes](#kubernetes)
+- [CI/CD](#cicd)
+- [Troubleshooting](#troubleshooting)
 
-Antes de ejecutar cualquier comando `make` o `kubectl`, asegurate de tener estos repos clonados correctamente (relativos al repositorio de Kubernetes):
+## 🔧 Prerequisitos
 
-* [`citary-database`](../citary-database/)
-* [`citary-backend`](../citary-backend/)
+### Software Requerido
+- **Docker** >= 20.10
+- **Docker Compose** >= 2.0
+- **Kubernetes** (Docker Desktop, Minikube, o cluster)
+- **kubectl** 
+- **Make** (opcional pero recomendado)
+- **Git**
 
----
-
-## ⚙️ Requisitos
-
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (con Kubernetes habilitado)
-* [`kubectl`](https://kubernetes.io/docs/tasks/tools/)
-* [`make`](https://www.gnu.org/software/make/) (Linux/macOS) o vía [Chocolatey](https://chocolatey.org/) en Windows
-
----
-
-## 💪 Preparación del entorno
-
-### 1. Habilitar Kubernetes en Docker Desktop
-
-Desde la interfaz de Docker Desktop:
-
-* Ve a **Settings > Kubernetes**
-* Activa **"Enable Kubernetes"**
-* Espera a que el clúster se inicialice (hasta que el ícono de Kubernetes tenga una tilde verde)
-
-### 2. Agregar entrada en el archivo `/etc/hosts`
-
-Para que Ingress funcione con dominios personalizados:
-
+### Verificar Instalación
 ```bash
-127.0.0.1 citary.local
+docker --version
+docker-compose --version
+kubectl version --client
+make --version
 ```
 
-Ubicación del archivo:
+## 📁 Estructura del Proyecto
 
-* **Linux/macOS:** `/etc/hosts`
-* **Windows:** `C:\Windows\System32\drivers\etc\hosts`
-
-### 3. Instalar un Ingress Controller (si aún no lo hiciste)
-
-Si tu clúster no tiene un controlador NGINX:
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.4/deploy/static/provider/cloud/deploy.yaml
 ```
-
----
-
-## 🧱 Estructura de los manifiestos
-
-```txt
-k8s/
-├── base/
+citary-infra/
+├── docker/
+│   ├── docker-compose.yml         
+│   ├── docker-compose.dev.yml   
+│   ├── docker-compose.prod.yml  
+│   └── .env.example     
+├── kubernetes/
+│   ├── namespace.yaml
+│   ├── database/
 │   ├── backend/
-│   └── postgres/
-├── ingress/
-├── overlays/
-│   └── dev/
+│   ├── frontend/
+│   └── ingress/
+├── scripts/
+│   ├── build-images.sh
+│   ├── deploy-k8s.sh
+│   └── cleanup.sh
 ├── Makefile
 └── README.md
 ```
 
----
+## ⚙️ Configuración Inicial
 
-## 🚀 Primer despliegue
-
-### 1. Construir imágenes Docker locales
-
+### 1. Clonar Repositorio de Infraestructura
 ```bash
-make build            # Construye backend + base de datos
+git clone https://github.com/tu-usuario/citary-infra.git
+cd citary-infra
 ```
 
-### 2. Desplegar todo el stack
-
+### 2. Configurar Variables de Entorno
 ```bash
-make deploy           # Aplica la configuración (base de datos + backend + ingress)
+cp docker/.env.example docker/.env
 ```
 
-### 3. Ver estado
+Edita `docker/.env`:
+```env
+# GitHub Configuration
+GITHUB_USER=tu-usuario-github
+GITHUB_TOKEN=ghp_xxxxxxxxxxxx  # Solo para repos privados
 
-```bash
-make status
+# Registry Configuration  
+REGISTRY=tu-usuario  # Docker Hub username o registry URL
+TAG=latest
+
+# Database Configuration
+POSTGRES_USER=root
+POSTGRES_PASSWORD=tu-password-seguro
+POSTGRES_DB=my_database_pg
+
+# API Configuration
+VITE_API_URL=http://localhost:3000
 ```
 
----
-
-## 🌐 Acceder a la aplicación
-
-Una vez desplegada:
-
+### 3. Para Desarrollo Local - Clonar Repositorios
 ```bash
-http://citary.local/
+# Solo necesario para desarrollo local
+mkdir repos
+cd repos
+
+# Clonar repositorios (ajusta las URLs)
+git clone https://github.com/tu-usuario/citary-backend.git
+git clone https://github.com/tu-usuario/citary-frontend.git  
+git clone https://github.com/tu-usuario/citary-database.git
+
+cd ..
 ```
 
-> Asegurate de tener el host configurado correctamente (ver paso anterior).
+## 🚀 Desarrollo Local
 
----
-
-## 🐘 Acceso a PostgreSQL
-
-### 1. Port-forward para conexión local
+### Opción A: Con Repositorios Locales (Recomendado para desarrollo)
 
 ```bash
-kubectl port-forward service/postgres 5432:5432
+# Levantar todo en modo desarrollo
+make up-dev
+
+# O manualmente
+docker-compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up -d
 ```
 
-### 2. Acceder vía `psql`
+### Opción B: Desde GitHub (Para testing)
 
 ```bash
-kubectl exec -it deployment/postgres -- psql -U root -d my_database_pg
+# Levantar todo desde GitHub  
+make up
+
+# Solo base de datos
+make up-db
+
+# Base + Backend
+make up-backend
 ```
 
----
-
-## 🔁 Reinicios y limpieza
-
-### Reiniciar todo el stack
+### Comandos Útiles de Desarrollo
 
 ```bash
-make restart
+# Ver logs en tiempo real
+make logs
+
+# Ver logs específicos
+make logs-backend
+
+# Reiniciar servicios
+docker-compose restart backend
+
+# Ejecutar comandos en contenedores
+docker-compose exec backend npm run test
+docker-compose exec database psql -U root -d my_database_pg
 ```
 
-### Eliminar todos los recursos
+### Acceso a la Aplicación
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:3000  
+- **Base de Datos**: localhost:5432
+
+## 🏭 Producción
+
+### 1. Construir y Subir Imágenes
 
 ```bash
-make delete
+# Construir todas las imágenes
+make build
+
+# Construir y subir al registry
+make build-push
+
+# Manualmente con variables específicas
+REGISTRY=tu-usuario TAG=v1.0.0 make build-push
 ```
 
-### Reiniciar solo la base de datos
+### 2. Desplegar en Producción
 
 ```bash
-make restart-database
+# Levantar en modo producción
+make up-prod
+
+# Con réplicas específicas
+docker-compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d --scale backend=3
 ```
 
-### Resetear volumen de la base de datos (⚠️ borra todos los datos)
+## ☸️ Kubernetes
+
+### 1. Preparar Cluster
 
 ```bash
-make reset-db
+# Para Docker Desktop
+kubectl config use-context docker-desktop
+
+# Para Minikube  
+minikube start
+kubectl config use-context minikube
+
+# Verificar conexión
+kubectl cluster-info
 ```
 
----
-
-## 📋 Comandos útiles
+### 2. Instalar NGINX Ingress Controller
 
 ```bash
-make logs-db           # Ver logs de Postgres
-make logs-backend      # Ver logs del backend
-make status            # Estado del clúster (pods, servicios, PVCs, etc.)
+# Para Docker Desktop
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml
+
+# Para Minikube
+minikube addons enable ingress
 ```
 
----
-
-## 📊 Monitoreo y depuración
+### 3. Construir y Subir Imágenes
 
 ```bash
-kubectl get pods
-kubectl describe pod <nombre>
-kubectl logs <nombre>
-kubectl get svc
-kubectl get pvc
-kubectl top pods
-kubectl top nodes
+# Construir imágenes para Kubernetes
+make build-images
+
+# Subir al registry
+PUSH=true make build-images
 ```
 
----
+### 4. Desplegar en Kubernetes
 
-## 🤖 Arquitectura general
+```bash
+# Despliegue completo
+make deploy-k8s
 
-### PostgreSQL
+# Ver qué se va a desplegar (dry-run)
+make deploy-k8s-dry
 
-* Volumen persistente: 2GB
-* CPU: 0.5–1
-* RAM: 512Mi–1Gi
-* Puerto: 5432
+# Verificar estado
+make status-k8s
+```
 
-### Backend (Node.js)
+### 5. Configurar Acceso Local
 
-* CPU: 0.25–0.5
-* RAM: 256Mi–512Mi
-* Expuesto vía Ingress en puerto 3000
+Agregar a `/etc/hosts` (Linux/Mac) o `C:\Windows\System32\drivers\etc\hosts` (Windows):
+```
+127.0.0.1 citary.local
+```
 
-### Ingress Controller (opcional)
+### 6. Acceso a la Aplicación
 
-* Requiere configuración previa en Docker Desktop o mediante manifiesto externo
+- **Frontend**: http://citary.local
+- **Backend API**: http://citary.local/api
 
----
+### 7. Comandos de Kubernetes
 
-> ✅ Todos los flujos están automatizados con `make`. No se requieren scripts manuales ni cambios de contexto Docker.
+```bash
+# Escalar backend
+make scale-backend REPLICAS=5
 
-✨ ¡Feliz desarrollo con Citary! 🚀
+# Ver logs
+make logs-k8s
+make logs-k8s-backend
+
+# Reiniciar deployments
+make restart-backend
+make restart-frontend
+
+# Limpiar todo
+make delete-k8s
+```
+
+## 🔄 CI/CD
+
+### Configuración con GitHub Actions
+
+Crear `.github/workflows/deploy.yml`:
+
+```yaml
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  GITHUB_USER: ${{ github.actor }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and push images
+      run: |
+        REGISTRY=${{ env.REGISTRY }}/${{ env.GITHUB_USER }} \
+        TAG=${{ github.sha }} \
+        PUSH=true \
+        ./scripts/build-images.sh
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure kubectl
+      uses: azure/setup-kubectl@v3
+    
+    - name: Deploy to Kubernetes
+      run: |
+        sed -i "s/:latest/:${{ github.sha }}/g" kubernetes/*/**.yaml
+        kubectl apply -f kubernetes/
+```
+
+### Jenkins Pipeline
+
+```groovy
+pipeline {
+    agent any
+    
+    environment {
+        REGISTRY = 'tu-registry'
+        GITHUB_USER = 'tu-usuario'
+        TAG = "${BUILD_NUMBER}"
+    }
+    
+    stages {
+        stage('Build Images') {
+            steps {
+                sh './scripts/build-images.sh'
+            }
+        }
+        
+        stage('Push Images') {
+            steps {
+                sh 'PUSH=true ./scripts/build-images.sh'
+            }
+        }
+        
+        stage('Deploy to K8s') {
+            when {
+                branch 'main'
+            }
+            steps {
+                sh './scripts/deploy-k8s.sh'
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
+```
+
+## 🛠️ Troubleshooting
+
+### Problemas Comunes
+
+#### Docker Compose no encuentra repositorios privados
+```bash
+# Usar token de GitHub
+export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
+
+# O usar contexto local para desarrollo
+make up-dev  # En lugar de make up
+```
+
+#### Backend no se conecta a la base de datos
+```bash
+# Verificar que la base esté corriendo
+docker-compose ps
+
+# Ver logs de la base
+docker-compose logs database
+
+# Verificar conectividad
+docker-compose exec backend nc -z database 5432
+```
+
+#### Frontend no puede conectar con el backend
+```bash
+# Verificar variables de entorno
+docker-compose exec frontend env | grep VITE_API_URL
+
+# Reconstruir con la URL correcta
+VITE_API_URL=http://localhost:3000 docker-compose up --build frontend
+```
+
+#### Kubernetes pods en estado Pending
+```bash
+# Verificar recursos del cluster
+kubectl describe nodes
+
+# Verificar PVC
+kubectl get pvc -n citary
+
+# Ver eventos
+kubectl get events -n citary --sort-by='.lastTimestamp'
+```
+
+#### Ingress no funciona
+```bash
+# Verificar que ingress controller esté corriendo
+kubectl get pods -n ingress-nginx
+
+# Verificar servicios
+kubectl get services -n citary
+
+# Verificar ingress
+kubectl describe ingress citary-ingress -n citary
+```
+
+### Comandos de Diagnóstico
+
+```bash
+# Docker
+docker system df  # Ver uso de espacio
+docker system prune  # Limpiar recursos no usados
+
+# Kubernetes  
+kubectl get all -n citary  # Ver todos los recursos
+kubectl top pods -n citary  # Ver uso de recursos
+kubectl describe pod <pod-name> -n citary  # Detalles de pod específico
+```
+
+### Logs Útiles
+
+```bash
+# Docker Compose
+docker-compose logs --tail=100 -f
+
+# Kubernetes
+kubectl logs -f deployment/backend-deployment -n citary
+kubectl logs --previous -c backend <pod-name> -n citary  # Logs anteriores
+```
+
+## 📞 Soporte
+
+Si encuentras problemas:
+
+1. **Revisa los logs** usando los comandos de arriba
+2. **Verifica la configuración** en los archivos `.env`
+3. **Consulta la documentación** de Docker/Kubernetes
+4. **Abre un issue** en el repositorio con:
+   - Descripción del problema
+   - Logs relevantes
+   - Pasos para reproducir
+   - Información del entorno
+
+## 🤝 Contribución
+
+1. Fork el repositorio
+2. Crea una rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -am 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crea un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
