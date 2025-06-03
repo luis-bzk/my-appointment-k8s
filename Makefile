@@ -36,7 +36,7 @@ help:
 
 # Comandos para desarrollo local (usa archivos locales)
 build:
-	cd docker && docker-compose build
+	cd docker && docker-compose --env-file ../.env build
 
 up:
 	cd docker && docker-compose up -d
