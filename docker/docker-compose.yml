@@ -28,8 +28,23 @@ services:
       dockerfile: Dockerfile
     container_name: citary-backend
     environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://root:root@database:5432/my_database_pg
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - JWT_SEED=${JWT_SEED}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - SYSTEM_NAME=${SYSTEM_NAME}
+      - DB_USER=${DB_USER}
+      - DB_HOST=${DB_HOST}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PORT=${DB_PORT}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
     ports:
       - '3000:3000'
     depends_on:
