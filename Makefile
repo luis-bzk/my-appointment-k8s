@@ -1,114 +1,221 @@
-.PHONY: help build up down logs clean build-prod up-prod down-prod deploy-k8s delete-k8s status-k8s logs-k8s up-local-db up-remote-services scale-backend logs-k8s-backend logs-k8s-frontend restart-backend restart-frontend
+# Makefile para Citary - Sistema de gestión de citas
+# Este Makefile simplifica las operaciones de desarrollo y producción
 
-help:
-	@echo "=== COMANDOS DISPONIBLES ==="
+.PHONY: help dev prod stop clean build push logs restart db-only backend-only
+
+# === VARIABLES ===
+COMPOSE_DEV = docker-compose -f docker-compose.dev.yml
+COMPOSE_PROD = docker-compose -f docker-compose.prod.yml
+ENV_FILE = .env
+
+# Colores para output
+GREEN = \033[0;32m
+YELLOW = \033[0;33m
+RED = \033[0;31m
+NC = \033[0m # No Color
+
+# === COMANDOS PRINCIPALES ===
+
+help: ## Muestra esta ayuda
+	@echo "$(GREEN)=== COMANDOS DISPONIBLES PARA CITARY ===$(NC)"
 	@echo ""
-	@echo "DESARROLLO LOCAL:"
-	@echo "  build          - Construir todas las imagenes para desarrollo"
-	@echo "  up             - Levantar todos los servicios en desarrollo"
-	@echo "  up-db          - Levantar solo la base de datos"
-	@echo "  up-backend     - Levantar base de datos y backend"
-	@echo "  up-dev         - Levantar en modo desarrollo con hot reload"
-	@echo "  down           - Bajar todos los servicios"
-	@echo "  logs           - Ver logs de todos los servicios"
-	@echo "  logs-backend   - Ver logs del backend"
-	@echo "  clean          - Limpiar contenedores e imagenes"
+	@echo "$(YELLOW)DESARROLLO:$(NC)"
+	@echo "  make dev            - Levantar ambiente completo de desarrollo"
+	@echo "  make db-only        - Solo base de datos (para desarrollo con backend local)"
+	@echo "  make backend-only   - Solo backend y base de datos"
+	@echo "  make stop           - Detener todos los servicios"
+	@echo "  make restart        - Reiniciar todos los servicios"
+	@echo "  make logs           - Ver logs de todos los servicios"
+	@echo "  make logs-backend   - Ver logs solo del backend"
+	@echo "  make clean          - Limpiar todo (contenedores, volúmenes, imágenes)"
 	@echo ""
-	@echo "PRODUCCION:"
-	@echo "  build-prod     - Construir imagenes para produccion"
-	@echo "  up-prod        - Levantar en modo produccion"
-	@echo "  down-prod      - Bajar servicios de produccion"
+	@echo "$(YELLOW)PRODUCCIÓN:$(NC)"
+	@echo "  make build          - Construir imágenes de producción"
+	@echo "  make push           - Subir imágenes a Docker Hub"
+	@echo "  make prod           - Levantar en modo producción"
+	@echo "  make prod-stop      - Detener servicios de producción"
 	@echo ""
-	@echo "KUBERNETES:"
-	@echo "  deploy-k8s     - Desplegar en Kubernetes"
-	@echo "  delete-k8s     - Eliminar deployment de Kubernetes"
-	@echo "  status-k8s     - Ver estatus de pods"
-	@echo "  logs-k8s       - Ver logs de todos los pods"
-	@echo "  logs-k8s-backend - Ver logs especificos del backend"
-	@echo "  logs-k8s-frontend - Ver logs especificos del frontend"
-	@echo "  scale-backend  - Escalar backend (uso: make scale-backend REPLICAS=5)"
-	@echo "  restart-backend - Reiniciar deployment del backend"
-	@echo "  restart-frontend - Reiniciar deployment del frontend"
+	@echo "$(YELLOW)UTILIDADES:$(NC)"
+	@echo "  make setup          - Configurar ambiente inicial (.env)"
+	@echo "  make validate       - Validar configuración"
+	@echo "  make db-backup      - Backup de base de datos"
+	@echo "  make db-restore     - Restaurar base de datos"
 	@echo ""
-	@echo "COMANDOS HIBRIDOS:"
-	@echo "  up-local-db    - Solo base de datos local"
-	@echo "  up-remote-services - Backend y frontend desde repositorios remotos"
 
-# Comandos para desarrollo local (usa archivos locales)
-build:
-	cd docker && docker-compose --env-file .env build
+# === DESARROLLO ===
 
-up:
-	cd docker && docker-compose up -d
+setup: ## Configurar ambiente inicial
+	@if [ ! -f $(ENV_FILE) ]; then \
+		echo "$(GREEN)Creando archivo .env desde template...$(NC)"; \
+		cp .env.example .env; \
+		echo "$(YELLOW)Por favor edita .env con tus valores reales$(NC)"; \
+	else \
+		echo "$(YELLOW)El archivo .env ya existe$(NC)"; \
+	fi
 
-up-db:
-	cd docker && docker-compose up -d database
+validate: ## Validar configuración
+	@echo "$(GREEN)Validando configuración...$(NC)"
+	@if [ ! -f $(ENV_FILE) ]; then \
+		echo "$(RED)ERROR: No existe .env. Ejecuta 'make setup' primero$(NC)"; \
+		exit 1; \
+	fi
+	@echo "Verificando proyectos..."
+	@test -d ../citary-backend || (echo "$(RED)ERROR: No se encuentra citary-backend$(NC)" && exit 1)
+	@test -d ../citary-frontend || (echo "$(RED)ERROR: No se encuentra citary-frontend$(NC)" && exit 1)
+	@test -d ../citary-database || (echo "$(RED)ERROR: No se encuentra citary-database$(NC)" && exit 1)
+	@echo "$(GREEN)✓ Configuración válida$(NC)"
 
-up-backend:
-	cd docker && docker-compose up -d database backend
+dev: validate ## Levantar ambiente de desarrollo completo
+	@echo "$(GREEN)Iniciando ambiente de desarrollo...$(NC)"
+	$(COMPOSE_DEV) up -d
+	@echo "$(GREEN)✓ Servicios iniciados:$(NC)"
+	@echo "  - Frontend: http://localhost:5173"
+	@echo "  - Backend:  http://localhost:3001"
+	@echo "  - Database: localhost:5432"
 
-up-dev:
-	cd docker && docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+db-only: validate ## Solo base de datos
+	@echo "$(GREEN)Iniciando solo base de datos...$(NC)"
+	$(COMPOSE_DEV) up -d database
+	@echo "$(GREEN)✓ Base de datos disponible en localhost:5432$(NC)"
 
-down:
-	cd docker && docker-compose down
+backend-only: validate ## Backend y base de datos
+	@echo "$(GREEN)Iniciando backend y base de datos...$(NC)"
+	$(COMPOSE_DEV) up -d database backend
+	@echo "$(GREEN)✓ Backend disponible en http://localhost:3001$(NC)"
 
-logs:
-	cd docker && docker-compose logs -f
+stop: ## Detener todos los servicios
+	@echo "$(YELLOW)Deteniendo servicios...$(NC)"
+	$(COMPOSE_DEV) down
+	$(COMPOSE_PROD) down 2>/dev/null || true
+	@echo "$(GREEN)✓ Servicios detenidos$(NC)"
 
-logs-backend:
-	cd docker && docker-compose logs -f backend
+restart: stop dev ## Reiniciar servicios de desarrollo
 
-clean:
-	cd docker && docker-compose down -v --rmi all
+logs: ## Ver logs de todos los servicios
+	$(COMPOSE_DEV) logs -f
 
-# Comandos para produccion (usa repositorios remotos)
-build-prod:
-	cd docker && docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
+logs-backend: ## Ver logs del backend
+	$(COMPOSE_DEV) logs -f backend
 
-up-prod:
-	cd docker && docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+logs-frontend: ## Ver logs del frontend
+	$(COMPOSE_DEV) logs -f frontend
 
-down-prod:
-	cd docker && docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
+logs-db: ## Ver logs de la base de datos
+	$(COMPOSE_DEV) logs -f database
 
-# Comandos para Kubernetes
-deploy-k8s:
-	./scripts/deploy-k8s.sh
+# === PRODUCCIÓN ===
 
-deploy-k8s-dry:
-	DRY_RUN=true ./scripts/deploy-k8s.sh
+build: validate ## Construir imágenes de producción
+	@echo "$(GREEN)Construyendo imágenes de producción...$(NC)"
+	$(COMPOSE_PROD) build
+	@echo "$(GREEN)✓ Imágenes construidas$(NC)"
 
-delete-k8s:
-	./scripts/cleanup.sh
+build-no-cache: validate ## Construir sin cache
+	@echo "$(GREEN)Construyendo imágenes sin cache...$(NC)"
+	$(COMPOSE_PROD) build --no-cache
+	@echo "$(GREEN)✓ Imágenes construidas$(NC)"
 
-delete-k8s-force:
-	FORCE=true ./scripts/cleanup.sh
+push: ## Subir imágenes a Docker Hub
+	@echo "$(GREEN)Subiendo imágenes a Docker Hub...$(NC)"
+	$(COMPOSE_PROD) push
+	@echo "$(GREEN)✓ Imágenes subidas$(NC)"
 
-status-k8s:
-	kubectl get pods -n citary
+prod: validate ## Levantar en modo producción
+	@echo "$(GREEN)Iniciando ambiente de producción...$(NC)"
+	$(COMPOSE_PROD) up -d
+	@echo "$(GREEN)✓ Servicios en producción:$(NC)"
+	@echo "  - Frontend: http://localhost"
+	@echo "  - Backend:  http://localhost:3001"
 
-scale-backend:
-	kubectl scale deployment backend-deployment --replicas=$(REPLICAS) -n citary
+prod-stop: ## Detener servicios de producción
+	@echo "$(YELLOW)Deteniendo servicios de producción...$(NC)"
+	$(COMPOSE_PROD) down
+	@echo "$(GREEN)✓ Servicios detenidos$(NC)"
 
-logs-k8s:
-	kubectl logs -l app=backend -n citary --tail=100 -f
+# === LIMPIEZA ===
 
-logs-k8s-backend:
-	kubectl logs -l app=backend -n citary --tail=100 -f
+clean: ## Limpiar todo (CUIDADO: borra datos)
+	@echo "$(RED)ADVERTENCIA: Esto borrará todos los contenedores, volúmenes e imágenes$(NC)"
+	@echo "Presiona Ctrl+C para cancelar o Enter para continuar..."
+	@read dummy
+	$(COMPOSE_DEV) down -v --rmi all
+	$(COMPOSE_PROD) down -v --rmi all 2>/dev/null || true
+	docker system prune -af
+	@echo "$(GREEN)✓ Limpieza completa$(NC)"
 
-logs-k8s-frontend:
-	kubectl logs -l app=frontend -n citary --tail=100 -f
+clean-volumes: ## Limpiar solo volúmenes
+	@echo "$(YELLOW)Limpiando volúmenes...$(NC)"
+	$(COMPOSE_DEV) down -v
+	$(COMPOSE_PROD) down -v 2>/dev/null || true
+	@echo "$(GREEN)✓ Volúmenes eliminados$(NC)"
 
-restart-backend:
-	kubectl rollout restart deployment/backend-deployment -n citary
+# === UTILIDADES ===
 
-restart-frontend:
-	kubectl rollout restart deployment/frontend-deployment -n citary
+shell-backend: ## Abrir shell en el backend
+	$(COMPOSE_DEV) exec backend sh
 
-# Comandos hibridos
-up-local-db:
-	cd docker && docker-compose up -d database
+shell-frontend: ## Abrir shell en el frontend  
+	$(COMPOSE_DEV) exec frontend sh
 
-up-remote-services:
-	cd docker && docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d backend frontend
+shell-db: ## Abrir psql en la base de datos
+	$(COMPOSE_DEV) exec database psql -U root -d my_database_pg
+
+db-backup: ## Backup de la base de datos
+	@echo "$(GREEN)Creando backup de base de datos...$(NC)"
+	@mkdir -p backups
+	$(COMPOSE_DEV) exec -T database pg_dump -U root my_database_pg > backups/backup_$$(date +%Y%m%d_%H%M%S).sql
+	@echo "$(GREEN)✓ Backup creado en backups/$(NC)"
+
+db-restore: ## Restaurar base de datos desde backup
+	@echo "$(YELLOW)Archivos de backup disponibles:$(NC)"
+	@ls -1 backups/*.sql 2>/dev/null || echo "No hay backups disponibles"
+	@echo ""
+	@echo "Uso: make db-restore FILE=backups/backup_YYYYMMDD_HHMMSS.sql"
+
+# Restaurar con archivo específico
+ifdef FILE
+	@echo "$(GREEN)Restaurando desde $(FILE)...$(NC)"
+	$(COMPOSE_DEV) exec -T database psql -U root my_database_pg < $(FILE)
+	@echo "$(GREEN)✓ Base de datos restaurada$(NC)"
+endif
+
+# === COMANDOS DE DESARROLLO ===
+
+install-backend: ## Instalar dependencias del backend
+	cd ../citary-backend && npm install
+
+install-frontend: ## Instalar dependencias del frontend
+	cd ../citary-frontend && npm install
+
+test-backend: ## Ejecutar tests del backend
+	$(COMPOSE_DEV) exec backend npm test
+
+test-frontend: ## Ejecutar tests del frontend
+	$(COMPOSE_DEV) exec frontend npm test
+
+lint: ## Ejecutar linters
+	@echo "$(GREEN)Ejecutando linters...$(NC)"
+	cd ../citary-backend && npm run lint || true
+	cd ../citary-frontend && npm run lint || true
+
+# === MONITOREO ===
+
+ps: ## Ver estado de los contenedores
+	@docker-compose -f docker-compose.dev.yml ps
+	@docker-compose -f docker-compose.prod.yml ps 2>/dev/null || true
+
+stats: ## Ver estadísticas de recursos
+	@docker stats --no-stream $$(docker-compose -f docker-compose.dev.yml ps -q 2>/dev/null)
+
+# === DEPLOYMENT ===
+
+deploy-script: ## Generar script de deployment
+	@echo "$(GREEN)Generando script de deployment...$(NC)"
+	@mkdir -p deploy
+	@echo '#!/bin/bash' > deploy/deploy.sh
+	@echo 'echo "Desplegando Citary..."' >> deploy/deploy.sh
+	@echo 'docker-compose -f docker-compose.prod.yml pull' >> deploy/deploy.sh
+	@echo 'docker-compose -f docker-compose.prod.yml up -d' >> deploy/deploy.sh
+	@echo 'echo "✓ Deployment completado"' >> deploy/deploy.sh
+	@chmod +x deploy/deploy.sh
+	@echo "$(GREEN)✓ Script generado en deploy/deploy.sh$(NC)"

@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ../citary-backend
+      dockerfile: dockerfile
+      target: production
+    image: ${DOCKER_REGISTRY:-docker.io}/${DOCKER_NAMESPACE:-luisberrezueta}/citary-backend:${VERSION:-latest}
+    container_name: citary-backend-prod
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-3001}
+      JWT_SEED: ${JWT_SEED}
+      FRONTEND_URL: ${FRONTEND_URL}
+      SYSTEM_NAME: ${SYSTEM_NAME:-Citary}
+      DB_USER: ${DB_USER}
+      DB_HOST: ${DB_HOST}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: ${DB_PORT:-5432}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+    ports:
+      - "${PORT:-3001}:${PORT:-3001}"
+    networks:
+      - citary-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:${PORT:-3001}/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ../citary-frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        VITE_API_URL: ${FRONTEND_API_URL:-http://localhost:3001}
+    image: ${DOCKER_REGISTRY:-docker.io}/${DOCKER_NAMESPACE:-luisberrezueta}/citary-frontend:${VERSION:-latest}
+    container_name: citary-frontend-prod
+    environment:
+      NODE_ENV: production
+    ports:
+      - "80:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - citary-network
+    restart: unless-stopped
+
+networks:
+  citary-network:
+    driver: bridge

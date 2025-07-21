@@ -1,1 +1,42 @@
+# Variables de entorno
 .env
+.env.local
+.env.*.local
+
+# Directorios de Docker
+backup/
+backups/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporales
+*.tmp
+*.temp
+.cache/
+
+# Certificados SSL (si los hubiera)
+*.pem
+*.key
+*.crt
+*.csr
+
+# Kubernetes secrets
+*-secret.yaml
+*-secrets.yaml
+
+# Scripts con credenciales
+deploy-prod.sh
+deploy-staging.sh
