@@ -3,19 +3,19 @@ version: '3.8'
 services:
   database:
     build:
-      context: ../citary-database
+      context: ../nubrik-database
       dockerfile: Dockerfile
-    container_name: citary-database-dev
+    container_name: nubrik-database-dev
     environment:
       POSTGRES_USER: ${DB_USER:-root}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
       POSTGRES_DB: ${DB_DATABASE:-my_database_pg}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - '${DB_PORT:-5432}:5432'
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     networks:
-      - citary-network
+      - nubrik-network
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-root} -d ${DB_DATABASE:-my_database_pg}']
       interval: 10s
@@ -24,16 +24,16 @@ services:
 
   backend:
     build:
-      context: ../citary-backend
+      context: ../nubrik-backend
       dockerfile: dockerfile
       target: development
-    container_name: citary-backend-dev
+    container_name: nubrik-backend-dev
     environment:
       NODE_ENV: development
       PORT: ${PORT:-3001}
       JWT_SEED: ${JWT_SEED}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-      SYSTEM_NAME: ${SYSTEM_NAME:-Citary}
+      SYSTEM_NAME: ${SYSTEM_NAME:-Nubrik}
       DB_USER: ${DB_USER:-root}
       DB_HOST: database
       DB_DATABASE: ${DB_DATABASE:-my_database_pg}
@@ -47,38 +47,38 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
     ports:
-      - "${PORT:-3001}:${PORT:-3001}"
+      - '${PORT:-3001}:${PORT:-3001}'
     volumes:
-      - ../citary-backend:/app_backend
+      - ../nubrik-backend:/app_backend
       - /app_backend/node_modules
       - backend_logs:/app_backend/logs
     depends_on:
       database:
         condition: service_healthy
     networks:
-      - citary-network
+      - nubrik-network
     command: npm run dev
 
   frontend:
     build:
-      context: ../citary-frontend
+      context: ../nubrik-frontend
       dockerfile: Dockerfile
       target: development
       args:
         VITE_API_URL: ${FRONTEND_API_URL:-http://localhost:3001}
-    container_name: citary-frontend-dev
+    container_name: nubrik-frontend-dev
     environment:
       NODE_ENV: development
       VITE_API_URL: ${FRONTEND_API_URL:-http://localhost:3001}
     ports:
-      - "5173:5173"
+      - '5173:5173'
     volumes:
-      - ../citary-frontend:/app
+      - ../nubrik-frontend:/app
       - /app/node_modules
     depends_on:
       - backend
     networks:
-      - citary-network
+      - nubrik-network
     command: npm run dev -- --host
 
 volumes:
@@ -86,5 +86,5 @@ volumes:
   backend_logs:
 
 networks:
-  citary-network:
+  nubrik-network:
     driver: bridge

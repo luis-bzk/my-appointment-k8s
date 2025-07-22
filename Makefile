@@ -1,4 +1,4 @@
-# Makefile para Citary - Sistema de gestión de citas
+# Makefile para Nubrik - Sistema de gestión de citas
 # Este Makefile simplifica las operaciones de desarrollo y producción
 
 .PHONY: help dev prod stop clean build push logs restart db-only backend-only
@@ -60,9 +60,9 @@ validate: ## Validar configuración
 		exit 1; \
 	fi
 	@echo "Verificando proyectos..."
-	@test -d ../citary-backend || (echo "$(RED)ERROR: No se encuentra citary-backend$(NC)" && exit 1)
-	@test -d ../citary-frontend || (echo "$(RED)ERROR: No se encuentra citary-frontend$(NC)" && exit 1)
-	@test -d ../citary-database || (echo "$(RED)ERROR: No se encuentra citary-database$(NC)" && exit 1)
+	@test -d ../nubrik-backend || (echo "$(RED)ERROR: No se encuentra nubrik-backend$(NC)" && exit 1)
+	@test -d ../nubrik-frontend || (echo "$(RED)ERROR: No se encuentra nubrik-frontend$(NC)" && exit 1)
+	@test -d ../nubrik-database || (echo "$(RED)ERROR: No se encuentra nubrik-database$(NC)" && exit 1)
 	@echo "$(GREEN)✓ Configuración válida$(NC)"
 
 dev: validate ## Levantar ambiente de desarrollo completo
@@ -182,10 +182,10 @@ endif
 # === COMANDOS DE DESARROLLO ===
 
 install-backend: ## Instalar dependencias del backend
-	cd ../citary-backend && npm install
+	cd ../nubrik-backend && npm install
 
 install-frontend: ## Instalar dependencias del frontend
-	cd ../citary-frontend && npm install
+	cd ../nubrik-frontend && npm install
 
 test-backend: ## Ejecutar tests del backend
 	$(COMPOSE_DEV) exec backend npm test
@@ -195,8 +195,8 @@ test-frontend: ## Ejecutar tests del frontend
 
 lint: ## Ejecutar linters
 	@echo "$(GREEN)Ejecutando linters...$(NC)"
-	cd ../citary-backend && npm run lint || true
-	cd ../citary-frontend && npm run lint || true
+	cd ../nubrik-backend && npm run lint || true
+	cd ../nubrik-frontend && npm run lint || true
 
 # === MONITOREO ===
 
@@ -213,7 +213,7 @@ deploy-script: ## Generar script de deployment
 	@echo "$(GREEN)Generando script de deployment...$(NC)"
 	@mkdir -p deploy
 	@echo '#!/bin/bash' > deploy/deploy.sh
-	@echo 'echo "Desplegando Citary..."' >> deploy/deploy.sh
+	@echo 'echo "Desplegando Nubrik..."' >> deploy/deploy.sh
 	@echo 'docker-compose -f docker-compose.prod.yml pull' >> deploy/deploy.sh
 	@echo 'docker-compose -f docker-compose.prod.yml up -d' >> deploy/deploy.sh
 	@echo 'echo "✓ Deployment completado"' >> deploy/deploy.sh

@@ -1,11 +1,11 @@
-# Citary - Infraestructura y Orquestación
+# Nubrik - Infraestructura y Orquestación
 
-Este repositorio contiene toda la configuración de infraestructura para el sistema Citary, un sistema de gestión de citas médicas.
+Este repositorio contiene toda la configuración de infraestructura para el sistema Nubrik, un sistema de gestión de citas médicas.
 
 ## 📁 Estructura del Proyecto
 
 ```
-citary-appointment-k8s/
+nubrik-appointment-k8s/
 ├── docker-compose.dev.yml    # Configuración para desarrollo local
 ├── docker-compose.prod.yml   # Configuración para producción
 ├── .env.example             # Template de variables de entorno
@@ -19,9 +19,9 @@ citary-appointment-k8s/
 
 Este repositorio orquesta tres proyectos independientes:
 
-- **citary-backend**: API REST en Node.js
-- **citary-frontend**: Aplicación web en React/Vite
-- **citary-database**: PostgreSQL con scripts de inicialización
+- **nubrik-backend**: API REST en Node.js
+- **nubrik-frontend**: Aplicación web en React/Vite
+- **nubrik-database**: PostgreSQL con scripts de inicialización
 
 ## 🚀 Inicio Rápido
 
@@ -31,10 +31,10 @@ Este repositorio orquesta tres proyectos independientes:
 - Los tres repositorios clonados en el mismo nivel:
   ```
   /tu-directorio/
-  ├── citary-appointment-k8s/
-  ├── citary-backend/
-  ├── citary-frontend/
-  └── citary-database/
+  ├── nubrik-appointment-k8s/
+  ├── nubrik-backend/
+  ├── nubrik-frontend/
+  └── nubrik-database/
   ```
 
 ### 2. Configuración Inicial
@@ -151,8 +151,8 @@ GOOGLE_CLIENT_SECRET=your-secret
 ### Docker Hub
 
 Las imágenes se publican en Docker Hub:
-- `luisberrezueta/citary-backend:latest`
-- `luisberrezueta/citary-frontend:latest`
+- `luisberrezueta/nubrik-backend:latest`
+- `luisberrezueta/nubrik-frontend:latest`
 
 ```bash
 # Construir y publicar
@@ -166,15 +166,15 @@ make push
 
 ```bash
 # Desplegar backend
-gcloud run deploy citary-backend \
-  --image luisberrezueta/citary-backend:latest \
+gcloud run deploy nubrik-backend \
+  --image luisberrezueta/nubrik-backend:latest \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated
 
 # Desplegar frontend
-gcloud run deploy citary-frontend \
-  --image luisberrezueta/citary-frontend:latest \
+gcloud run deploy nubrik-frontend \
+  --image luisberrezueta/nubrik-frontend:latest \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated
@@ -191,8 +191,8 @@ gcloud run deploy citary-frontend \
 
 ```bash
 # En el servidor
-git clone https://github.com/tu-usuario/citary-appointment-k8s.git
-cd citary-appointment-k8s
+git clone https://github.com/tu-usuario/nubrik-appointment-k8s.git
+cd nubrik-appointment-k8s
 
 # Configurar .env
 cp .env.example .env
@@ -220,12 +220,12 @@ jobs:
       
       - name: Build and push
         run: |
-          docker build -t ${{ secrets.DOCKER_REGISTRY }}/citary-backend ../citary-backend
-          docker push ${{ secrets.DOCKER_REGISTRY }}/citary-backend
+          docker build -t ${{ secrets.DOCKER_REGISTRY }}/nubrik-backend ../nubrik-backend
+          docker push ${{ secrets.DOCKER_REGISTRY }}/nubrik-backend
           
       - name: Deploy to server
         run: |
-          ssh ${{ secrets.SERVER }} "cd citary && docker-compose pull && docker-compose up -d"
+          ssh ${{ secrets.SERVER }} "cd nubrik && docker-compose pull && docker-compose up -d"
 ```
 
 ## 🛠️ Desarrollo

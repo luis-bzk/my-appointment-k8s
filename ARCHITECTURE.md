@@ -1,4 +1,4 @@
-# Arquitectura de Infraestructura - Citary
+# Arquitectura de Infraestructura - Nubrik
 
 Este documento explica la arquitectura y estructura de archivos del proyecto de infraestructura.
 
